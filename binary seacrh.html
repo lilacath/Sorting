@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Binary Search</title>
+
+<style>
+body{
+  font-family:'Poppins',sans-serif;
+  background:linear-gradient(135deg,#f5f3ff,#faf5ff);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  margin:0;
+  overflow:hidden;
+  color:#6b21a8;
+}
+
+.card{
+  width:500px;
+  background:#ffffffcc;
+  backdrop-filter:blur(12px);
+  padding:30px;
+  border-radius:25px;
+  text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.08);
+  position:relative;
+}
+
+h1{
+  margin-bottom:15px;
+}
+
+.target{
+  font-size:24px;
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+.progress{
+  width:100%;
+  height:12px;
+  background:#ede9fe;
+  border-radius:10px;
+  overflow:hidden;
+  margin-bottom:20px;
+}
+
+.progress-bar{
+  width:0%;
+  height:100%;
+  background:linear-gradient(90deg,#c084fc,#8b5cf6);
+  transition:0.4s;
+}
+
+.numbers{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin:25px 0;
+}
+
+.num{
+  width:55px;
+  height:55px;
+  line-height:55px;
+  border-radius:15px;
+  background:#e9d5ff;
+  font-weight:700;
+  font-size:20px;
+  transition:0.3s;
+}
+
+.active{
+  background:#ddd6fe;
+}
+
+.mid{
+  background:#a78bfa;
+  color:white;
+  transform:scale(1.2);
+  box-shadow:0 0 15px #c084fc;
+}
+
+.eliminated{
+  opacity:0.3;
+  transform:scale(0.9);
+}
+
+.found{
+  background:#22c55e !important;
+  color:white;
+  animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+  0%{transform:scale(1.1);}
+  50%{transform:scale(1.25);}
+  100%{transform:scale(1.1);}
+}
+
+.btn{
+  padding:12px 20px;
+  margin:8px;
+  border:none;
+  border-radius:15px;
+  background:#ddd6fe;
+  color:#6b21a8;
+  font-weight:700;
+  cursor:pointer;
+  transition:0.3s;
+  font-size:15px;
+}
+
+.btn:hover{
+  transform:translateY(-3px) scale(1.05);
+  background:#c4b5fd;
+}
+
+.correct{
+  color:#16a34a;
+  font-weight:700;
+}
+
+.wrong{
+  color:#dc2626;
+  font-weight:700;
+}
+
+#explain{
+  margin-top:12px;
+  background:#faf5ff;
+  padding:12px;
+  border-radius:12px;
+  min-height:40px;
+}
+
+.stats{
+  display:flex;
+  justify-content:space-between;
+  margin-top:15px;
+  font-weight:700;
+}
+
+.badge{
+  margin-top:15px;
+  font-size:22px;
+  font-weight:700;
+}
+
+#restart{
+  display:none;
+  margin-top:20px;
+  padding:15px 35px;
+}
+
+.confetti{
+  position:absolute;
+  width:10px;
+  height:10px;
+  top:-20px;
+  animation:fall linear forwards;
+}
+
+@keyframes fall{
+  to{
+    transform:translateY(700px) rotate(720deg);
+    opacity:0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h1>Binary Search 🔍💜</h1>
+
+<div class="progress">
+  <div class="progress-bar" id="progressBar"></div>
+</div>
+
+<div class="target" id="target"></div>
+
+<div class="numbers" id="numbers"></div>
+
+<div id="question"></div>
+
+<div style="margin-top:20px;">
+  <button class="btn action" onclick="answer('left')">
+    ⬅️ Lebih kecil
+  </button>
+
+  <button class="btn action" onclick="answer('found')">
+    🎯 Ketemu
+  </button>
+
+  <button class="btn action" onclick="answer('right')">
+    ➡️ Lebih besar
+  </button>
+</div>
+
+<div id="status"></div>
+<div id="explain"></div>
+
+<div class="stats">
+  <div>⭐ Skor: <span id="score">0</span></div>
+  <div>🔥 Combo: <span id="combo">0</span></div>
+  <div>⏱ <span id="timer">0</span>s</div>
+</div>
+
+<div class="badge" id="badge"></div>
+
+<button class="btn" id="restart" onclick="restartGame()">
+  Main Lagi
+</button>
+
+</div>
+
+<script>
+
+let arr=[];
+let left,right,mid,target;
+
+let totalStep=0;
+let correctStep=0;
+let combo=0;
+let seconds=0;
+
+let timerInterval;
+
+function startTimer(){
+
+  clearInterval(timerInterval);
+
+  timerInterval=setInterval(()=>{
+    seconds++;
+    document.getElementById("timer").innerText=seconds;
+  },1000);
+}
+
+function playSound(freq){
+
+  const ctx=new(window.AudioContext||window.webkitAudioContext)();
+
+  const osc=ctx.createOscillator();
+
+  osc.type="sine";
+  osc.frequency.value=freq;
+
+  osc.connect(ctx.destination);
+
+  osc.start();
+
+  setTimeout(()=>{
+    osc.stop();
+  },120);
+}
+
+function generateArray(){
+
+  let set=new Set();
+
+  while(set.size<8){
+    set.add(Math.floor(Math.random()*90));
+  }
+
+  arr=Array.from(set).sort((a,b)=>a-b);
+}
+
+function renderArray(){
+
+  const container=document.getElementById("numbers");
+
+  container.innerHTML="";
+
+  arr.forEach((num,index)=>{
+
+    const div=document.createElement("div");
+
+    div.className="num";
+
+    if(index<left || index>right){
+      div.classList.add("eliminated");
+    }
+    else{
+      div.classList.add("active");
+    }
+
+    if(index===mid){
+      div.classList.add("mid");
+    }
+
+    if(num===target && left===right && arr[mid]===target){
+      div.classList.add("found");
+    }
+
+    div.innerText=num;
+
+    container.appendChild(div);
+  });
+}
+
+function updateProgress(){
+
+  const max=Math.ceil(Math.log2(arr.length))+1;
+
+  const progress=(totalStep/max)*100;
+
+  document.getElementById("progressBar").style.width=
+  Math.min(progress,100)+"%";
+}
+
+function showStep(){
+
+  if(left>right){
+
+    document.getElementById("question").innerText=
+    "❌ Target tidak ditemukan";
+
+    endGame(false);
+
+    return;
+  }
+
+  mid=Math.floor((left+right)/2);
+
+  renderArray();
+
+  document.getElementById("question").innerText=
+  `Bandingkan target (${target}) dengan ${arr[mid]}`;
+}
+
+function answer(choice){
+
+  let correct;
+
+  if(target===arr[mid]){
+    correct='found';
+  }
+  else if(target<arr[mid]){
+    correct='left';
+  }
+  else{
+    correct='right';
+  }
+
+  totalStep++;
+
+  const status=document.getElementById("status");
+  const explain=document.getElementById("explain");
+
+  if(choice===correct){
+
+    status.innerHTML=
+    `<span class="correct">✔ Jawaban Benar!</span>`;
+
+    correctStep++;
+    combo++;
+
+    playSound(700);
+
+    if(correct==='found'){
+
+      explain.innerHTML=
+      `🎯 Target ditemukan di index ${mid}`;
+
+      renderArray();
+
+      document.querySelectorAll(".num")[mid]
+      .classList.add("found");
+
+      endGame(true);
+
+      return;
+    }
+
+    if(correct==='left'){
+
+      explain.innerHTML=
+      `⬅️ ${target} lebih kecil dari ${arr[mid]} → buang bagian kanan`;
+
+      right=mid-1;
+    }
+
+    if(correct==='right'){
+
+      explain.innerHTML=
+      `➡️ ${target} lebih besar dari ${arr[mid]} → buang bagian kiri`;
+
+      left=mid+1;
+    }
+
+  }else{
+
+    status.innerHTML=
+    `<span class="wrong">✖ Jawaban Salah!</span>`;
+
+    combo=0;
+
+    playSound(250);
+
+    if(correct==='found'){
+      explain.innerHTML=
+      `Harusnya 🎯 KETEMU karena ${target} = ${arr[mid]}`;
+    }
+
+    if(correct==='left'){
+      explain.innerHTML=
+      `${target} < ${arr[mid]} jadi seharusnya ke kiri`;
+    }
+
+    if(correct==='right'){
+      explain.innerHTML=
+      `${target} > ${arr[mid]} jadi seharusnya ke kanan`;
+    }
+  }
+
+  document.getElementById("score").innerText=
+  correctStep;
+
+  document.getElementById("combo").innerText=
+  combo;
+
+  updateProgress();
+
+  setTimeout(showStep,900);
+}
+
+function endGame(found){
+
+  clearInterval(timerInterval);
+
+  document.querySelectorAll(".action")
+  .forEach(btn=>btn.style.display="none");
+
+  document.getElementById("restart")
+  .style.display="inline-block";
+
+  let percent=Math.round((correctStep/totalStep)*100);
+
+  let badge="";
+
+  if(percent===100){
+    badge="👑 Binary Search Master";
+  }
+  else if(percent>=80){
+    badge="🏆 Hebat!";
+  }
+  else{
+    badge="✨ Good Try!";
+  }
+
+  document.getElementById("badge").innerText=
+  badge;
+
+  if(found){
+    confetti();
+  }
+}
+
+function confetti(){
+
+  for(let i=0;i<70;i++){
+
+    let div=document.createElement("div");
+
+    div.className="confetti";
+
+    div.style.left=Math.random()*100+"%";
+
+    div.style.background=
+    `hsl(${Math.random()*360},100%,70%)`;
+
+    div.style.animationDuration=
+    (Math.random()*2+2)+"s";
+
+    document.body.appendChild(div);
+
+    setTimeout(()=>{
+      div.remove();
+    },4000);
+  }
+}
+
+function restartGame(){
+
+  totalStep=0;
+  correctStep=0;
+  combo=0;
+  seconds=0;
+
+  document.getElementById("score").innerText=0;
+  document.getElementById("combo").innerText=0;
+  document.getElementById("timer").innerText=0;
+
+  document.getElementById("status").innerText="";
+  document.getElementById("explain").innerText="";
+  document.getElementById("badge").innerText="";
+
+  document.getElementById("progressBar")
+  .style.width="0%";
+
+  document.querySelectorAll(".action")
+  .forEach(btn=>btn.style.display="inline-block");
+
+  document.getElementById("restart")
+  .style.display="none";
+
+  generateArray();
+
+  target=arr[Math.floor(Math.random()*arr.length)];
+
+  left=0;
+  right=arr.length-1;
+
+  document.getElementById("target").innerText=
+  `🎯 Target: ${target}`;
+
+  startTimer();
+
+  showStep();
+}
+
+generateArray();
+
+target=arr[Math.floor(Math.random()*arr.length)];
+
+left=0;
+right=arr.length-1;
+
+document.getElementById("target").innerText=
+`🎯 Target: ${target}`;
+
+startTimer();
+
+showStep();
+
+</script>
+
+</body>
+</html>
