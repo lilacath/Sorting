@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Bubble Sort</title>
+
+<style>
+body{
+  font-family:'Poppins',sans-serif;
+  background:linear-gradient(135deg,#f5f3ff,#faf5ff);
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  margin:0;
+  overflow:hidden;
+  color:#6b21a8;
+}
+
+h1{
+  margin-bottom:15px;
+}
+
+.card{
+  width:460px;
+  background:#ffffffcc;
+  backdrop-filter:blur(12px);
+  padding:30px;
+  border-radius:25px;
+  text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.08);
+  position:relative;
+}
+
+.progress{
+  width:100%;
+  height:12px;
+  background:#ede9fe;
+  border-radius:10px;
+  overflow:hidden;
+  margin-bottom:20px;
+}
+
+.progress-bar{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,#c084fc,#8b5cf6);
+  transition:0.4s;
+}
+
+.numbers{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  margin:30px 0;
+}
+
+.num{
+  width:55px;
+  height:55px;
+  line-height:55px;
+  border-radius:15px;
+  background:#e9d5ff;
+  font-weight:700;
+  font-size:20px;
+  transition:0.3s;
+}
+
+.highlight{
+  background:#c4b5fd;
+  transform:scale(1.15);
+  box-shadow:0 0 15px #c084fc;
+}
+
+.swap{
+  animation:shake 0.4s;
+}
+
+@keyframes shake{
+  0%{transform:translateX(0);}
+  25%{transform:translateX(-5px);}
+  50%{transform:translateX(5px);}
+  75%{transform:translateX(-5px);}
+  100%{transform:translateX(0);}
+}
+
+.btn{
+  padding:12px 22px;
+  margin:10px;
+  border:none;
+  border-radius:15px;
+  background:#ddd6fe;
+  color:#6b21a8;
+  font-weight:700;
+  cursor:pointer;
+  transition:0.3s;
+  font-size:16px;
+}
+
+.btn:hover{
+  transform:translateY(-3px) scale(1.05);
+  background:#c4b5fd;
+}
+
+.correct{
+  color:#16a34a;
+  font-weight:700;
+}
+
+.wrong{
+  color:#dc2626;
+  font-weight:700;
+}
+
+#restart{
+  display:none;
+  margin-top:20px;
+  font-size:18px;
+  padding:15px 35px;
+}
+
+.stats{
+  display:flex;
+  justify-content:space-between;
+  margin-top:15px;
+  font-weight:600;
+}
+
+.badge{
+  margin-top:15px;
+  font-size:22px;
+  font-weight:700;
+}
+
+.confetti{
+  position:absolute;
+  width:10px;
+  height:10px;
+  background:red;
+  top:-10px;
+  animation:fall 3s linear forwards;
+}
+
+@keyframes fall{
+  to{
+    transform:translateY(700px) rotate(720deg);
+    opacity:0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<h1>Bubble Sort 💜</h1>
+
+<div class="card">
+
+<div class="progress">
+  <div class="progress-bar" id="progressBar"></div>
+</div>
+
+<p>Pilih apakah angka perlu ditukar</p>
+
+<div class="numbers" id="numbers"></div>
+
+<div id="question"></div>
+
+<button class="btn action" onclick="answer(true)">🔄 Tukar</button>
+<button class="btn action" onclick="answer(false)">✅ Tidak</button>
+
+<div id="status"></div>
+
+<div class="stats">
+  <div>⭐ Skor: <span id="score">0</span></div>
+  <div>🔥 Combo: <span id="combo">0</span></div>
+  <div>⏱ <span id="timer">0</span>s</div>
+</div>
+
+<div class="badge" id="badge"></div>
+
+<button class="btn" id="restart" onclick="restartGame()">
+  Main Lagi
+</button>
+
+</div>
+
+<script>
+let arr=[];
+let i=0;
+let pass=0;
+
+let totalStep=0;
+let correctStep=0;
+let combo=0;
+let seconds=0;
+
+let timerInterval;
+
+function startTimer(){
+  clearInterval(timerInterval);
+
+  timerInterval=setInterval(()=>{
+    seconds++;
+    document.getElementById("timer").innerText=seconds;
+  },1000);
+}
+
+function playSound(freq){
+  const ctx=new(window.AudioContext||window.webkitAudioContext)();
+  const osc=ctx.createOscillator();
+  osc.type="sine";
+  osc.frequency.value=freq;
+  osc.connect(ctx.destination);
+  osc.start();
+  setTimeout(()=>{
+    osc.stop();
+  },120);
+}
+
+function generateArray(){
+  let set=new Set();
+
+  while(set.size<6){
+    set.add(Math.floor(Math.random()*50));
+  }
+
+  arr=Array.from(set);
+}
+
+function renderArray(){
+
+  const container=document.getElementById("numbers");
+  container.innerHTML="";
+
+  arr.forEach((num,index)=>{
+
+    const div=document.createElement("div");
+    div.className="num";
+
+    if(index===i || index===i+1){
+      div.classList.add("highlight");
+    }
+
+    div.innerText=num;
+    container.appendChild(div);
+  });
+}
+
+function updateProgress(){
+
+  const maxStep=((arr.length-1)*arr.length)/2;
+  const progress=(totalStep/maxStep)*100;
+
+  document.getElementById("progressBar").style.width=
+  progress+"%";
+}
+
+function showStep(){
+
+  if(pass>=arr.length-1){
+
+    clearInterval(timerInterval);
+
+    document.getElementById("question").innerText=
+    "🎉 Array berhasil diurutkan!";
+
+    document.getElementById("status").innerText="";
+
+    let percent=Math.round((correctStep/totalStep)*100);
+
+    let badge="";
+
+    if(percent===100){
+      badge="👑 Master Bubble Sort";
+    }
+    else if(percent>=80){
+      badge="🏆 Hebat";
+    }
+    else{
+      badge="✨ Lumayan";
+    }
+
+    document.getElementById("badge").innerText=badge;
+
+    document.querySelectorAll(".action")
+    .forEach(btn=>btn.style.display="none");
+
+    document.getElementById("restart")
+    .style.display="inline-block";
+
+    confetti();
+
+    return;
+  }
+
+  if(i>=arr.length-1-pass){
+    i=0;
+    pass++;
+  }
+
+  renderArray();
+
+  document.getElementById("question").innerText=
+  `Bandingkan ${arr[i]} dan ${arr[i+1]}`;
+}
+
+function answer(choice){
+
+  let shouldSwap=arr[i]>arr[i+1];
+
+  const status=document.getElementById("status");
+
+  totalStep++;
+
+  if(choice===shouldSwap){
+
+    status.innerHTML=
+    `<span class="correct">✔ Benar!</span>`;
+
+    correctStep++;
+    combo++;
+
+    playSound(700);
+
+  }else{
+
+    status.innerHTML=
+    `<span class="wrong">✖ Salah!</span>`;
+
+    combo=0;
+
+    playSound(250);
+  }
+
+  document.getElementById("combo").innerText=combo;
+  document.getElementById("score").innerText=correctStep;
+
+  if(shouldSwap){
+
+    [arr[i],arr[i+1]]=[arr[i+1],arr[i]];
+
+    renderArray();
+
+    document.querySelectorAll(".num")[i]
+    .classList.add("swap");
+
+    document.querySelectorAll(".num")[i+1]
+    .classList.add("swap");
+  }
+
+  updateProgress();
+
+  i++;
+
+  setTimeout(showStep,700);
+}
+
+function confetti(){
+
+  for(let j=0;j<80;j++){
+
+    let div=document.createElement("div");
+
+    div.className="confetti";
+
+    div.style.left=Math.random()*100+"%";
+
+    div.style.background=
+    `hsl(${Math.random()*360},100%,70%)`;
+
+    div.style.animationDuration=
+    (Math.random()*2+2)+"s";
+
+    document.body.appendChild(div);
+
+    setTimeout(()=>{
+      div.remove();
+    },4000);
+  }
+}
+
+function restartGame(){
+
+  i=0;
+  pass=0;
+  totalStep=0;
+  correctStep=0;
+  combo=0;
+  seconds=0;
+
+  document.getElementById("score").innerText=0;
+  document.getElementById("combo").innerText=0;
+  document.getElementById("timer").innerText=0;
+
+  document.getElementById("badge").innerText="";
+  document.getElementById("status").innerText="";
+
+  document.getElementById("progressBar")
+  .style.width="0%";
+
+  document.querySelectorAll(".action")
+  .forEach(btn=>btn.style.display="inline-block");
+
+  document.getElementById("restart")
+  .style.display="none";
+
+  generateArray();
+
+  startTimer();
+
+  showStep();
+}
+
+generateArray();
+startTimer();
+showStep();
+</script>
+
+</body>
+</html>
